@@ -1,4 +1,6 @@
 ﻿using UnityEngine;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UniRx;
@@ -16,7 +18,8 @@ public class AppMain : MonoBehaviour {
     public void Start()
     {
         Debug.Log("Application start...");
-        StreamFromAllResources<GameObject>("Main Camera").Subscribe(x => Instantiate(x));
+        StreamFromAllResources<GameObject>("Main Camera").Subscribe(x => Instantiate(x),
+            ex => Debug.Log(ex.Message));
     }
 
     private IObservable<T> StreamFromAllResources<T>(string name) where T : Object
@@ -33,7 +36,7 @@ public class AppMain : MonoBehaviour {
 
     private IObservable<T> StreamFromExternalResources<T>(string name) where T : Object
     {
-        var url = "file://" + Application.dataPath + "/ExternalResources/resources.bundle";
+        var url = "file://" + Application.dataPath + "/ExternalResources/resources.unity3d";
         Debug.Log("Loading asset from path: " + url);
         return ObservableWWW.LoadFromCacheOrDownload(url, 1).Select(x => x.LoadAsset<T>(name));
     }
