@@ -20,12 +20,12 @@ public class AppMain : MonoBehaviour {
         Debug.Log("Application start...");
         TestInput();
         StreamFromAllResources<GameObject>("Main Camera").Subscribe(x => Instantiate(x),
-            ex => Debug.Log(ex.Message));
+            ex => Debug.Log(ex));
     }
 
     private static void TestInput()
     {
-        InputHelper.MouseClickStream().Subscribe(x => Debug.Log("MouseClick"), () => Debug.Log("MouseClickFin"));
+        InputHelper.MouseDownStream().Subscribe(x => Debug.Log("MouseClick"), () => Debug.Log("MouseClickFin"));
         InputHelper.MouseUpStream().Subscribe(x => Debug.Log("MouseUp"), () => Debug.Log("MouseUpFin"));
         InputHelper.MouseDoubleClickStream().Subscribe(x => Debug.Log("MouseDoubleClick"), () => Debug.Log("MouseDoubleClickFin"));
         InputHelper.MouseDragStream().Subscribe(x => Debug.Log("MouseDrag"), () => Debug.Log("MouseDragFin"));
@@ -46,9 +46,24 @@ public class AppMain : MonoBehaviour {
 
     private IObservable<T> StreamFromExternalResources<T>(string name) where T : Object
     {
-        var url = "file://" + Application.dataPath + "/ExternalResources/resources.unity3d";
+        var url = "file://" + Application.dataPath + "/ExternalResources/resources.unity3dx";
         Debug.Log("Loading asset from path: " + url);
-        return ObservableWWW.LoadFromCacheOrDownload(url, 1).Select(x => x.LoadAsset<T>(name));
+        return ObservableWWW
+            .LoadFromCacheOrDownload(url, 1)
+            .CatchIgnore((WWWErrorException ex) => LogWWWError(ex))
+            .Select(x => x.LoadAsset<T>(name));
+    }
+    
+    private void LogWWWError(WWWErrorException ex){
+        Debug.Log(ex.RawErrorMessage);
+        if (ex.HasResponse)
+        {
+            Debug.Log(ex.StatusCode);
+        }
+        foreach (var item in ex.ResponseHeaders)
+        {
+            Debug.Log(item.Key + ":" + item.Value);
+        }
     }
 
     private IObservable<T> LoadFromExternalResources<T>(string prefabName) where T : Object
