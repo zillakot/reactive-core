@@ -18,8 +18,18 @@ public class AppMain : MonoBehaviour {
     public void Start()
     {
         Debug.Log("Application start...");
+        TestInput();
         StreamFromAllResources<GameObject>("Main Camera").Subscribe(x => Instantiate(x),
             ex => Debug.Log(ex.Message));
+    }
+
+    private static void TestInput()
+    {
+        InputHelper.MouseClickStream().Subscribe(x => Debug.Log("MouseClick"), () => Debug.Log("MouseClickFin"));
+        InputHelper.MouseUpStream().Subscribe(x => Debug.Log("MouseUp"), () => Debug.Log("MouseUpFin"));
+        InputHelper.MouseDoubleClickStream().Subscribe(x => Debug.Log("MouseDoubleClick"), () => Debug.Log("MouseDoubleClickFin"));
+        InputHelper.MouseDragStream().Subscribe(x => Debug.Log("MouseDrag"), () => Debug.Log("MouseDragFin"));
+        InputHelper.MouseMoveStream().Subscribe(x => Debug.Log("MouseMove"), () => Debug.Log("MouseMoveFin"));
     }
 
     private IObservable<T> StreamFromAllResources<T>(string name) where T : Object
