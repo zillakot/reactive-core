@@ -30,6 +30,7 @@ public class AppMain : MonoBehaviour {
         InputHelper.MouseDoubleClickStream().Subscribe(x => Debug.Log("MouseDoubleClick"), () => Debug.Log("MouseDoubleClickFin"));
         InputHelper.MouseDragStream().Subscribe(x => Debug.Log("MouseDrag"), () => Debug.Log("MouseDragFin"));
         InputHelper.MouseMoveStream().Subscribe(x => Debug.Log("MouseMove"), () => Debug.Log("MouseMoveFin"));
+        InputHelper.KeyboardStream().Subscribe(x => Debug.Log("Keys down: " + x ), () => Debug.Log("KeyPressFin"));
     }
 
     private IObservable<T> StreamFromAllResources<T>(string name) where T : Object

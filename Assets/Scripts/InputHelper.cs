@@ -19,7 +19,9 @@ public static class InputHelper {
 	}
 	
 	public static IObservable<Vector3> MouseMoveStream(){
-		return Observable.EveryUpdate().Select(_ => Input.mousePosition).DistinctUntilChanged();
+		return Observable.EveryUpdate()
+		.Select(_ => Input.mousePosition)
+		.DistinctUntilChanged();
 	}
 	
 	public static IObservable<IList<Vector3>> MouseDoubleClickStream(){
@@ -36,5 +38,11 @@ public static class InputHelper {
 				.Skip(1)
         		.TakeUntil(MouseUpStream());
 		});
+	}
+	
+	public static IObservable<string> KeyboardStream(){
+		return Observable.EveryUpdate()
+		.Where(_ => Input.anyKeyDown)
+		.Select(_ => Input.inputString);
 	}
 }
