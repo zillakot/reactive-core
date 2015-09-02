@@ -35,7 +35,9 @@ public class AppMain : MonoBehaviour {
     private static void TestInput()
     {
         InputHelper.MouseDownStream().Subscribe(x => {
-                Debug.Log("MouseClick " + Camera.allCameras.First().RaycastFromCamera(x));
+                var obu = Camera.allCameras.First().RaycastFromCamera(x);
+                Debug.Log("MouseClick " + obu);
+                if (obu != null) StartDrag(obu);
             }, () => Debug.Log("MouseClickFin"));
         InputHelper.MouseUpStream().Subscribe(x => Debug.Log("MouseUp"), () => Debug.Log("MouseUpFin"));
         InputHelper.MouseDoubleClickStream().Subscribe(x => Debug.Log("MouseDoubleClick"), () => Debug.Log("MouseDoubleClickFin"));
@@ -45,7 +47,12 @@ public class AppMain : MonoBehaviour {
         
         
     }
-    
+
+    private static void StartDrag(Collider obu)
+    {
+        throw new NotImplementedException();
+    }
+
     private IObservable<T> StreamFromAllResources<T>(string name) where T : Object
     {
         return Observable.Amb<T>(StreamFromExternalResources<T>(name));
@@ -63,7 +70,7 @@ public class AppMain : MonoBehaviour {
         var url = "file://" + Application.dataPath + "/ExternalResources/resources.unity3d";
         Debug.Log("Loading asset " + name + " from path: " + url);   
         return ObservableWWW
-            .LoadFromCacheOrDownload(url, new Hash128())
+            .LoadFromCacheOrDownload(url, 3)
             .CatchIgnore((WWWErrorException ex) => LogWWWError(ex))
             .Select(x => {var asset = x.LoadAsset<T>(name);
                 x.Unload(false);
