@@ -8,7 +8,7 @@ using Object = UnityEngine.Object;
 
 public class AppMain : MonoBehaviour {
     public static List<string> ResourcePaths = new List<string>(){"Assets/ExternalResources/"};
-
+    private static List<string> _loadedBundles = new List<string>();
     public void Awake()
     {
         Debug.Log("Application awake...");
@@ -19,20 +19,33 @@ public class AppMain : MonoBehaviour {
     {
         Debug.Log("Application start...");
         TestInput();
-        StreamFromAllResources<GameObject>("Main Camera").Subscribe(x => Instantiate(x),
-            ex => Debug.Log(ex));
+        Observable.Concat(
+                InstantiateFromBundle("Main Camera"),
+                InstantiateFromBundle("Plane"),
+                InstantiateFromBundle("Movable Cube"),
+                InstantiateFromBundle("Directional Light"))
+            .Subscribe();
+    }
+
+    private IObservable<GameObject> InstantiateFromBundle(string assetName)
+    {
+        return StreamFromAllResources<GameObject>(assetName).Select(x => Instantiate(x));
     }
 
     private static void TestInput()
     {
-        InputHelper.MouseDownStream().Subscribe(x => Debug.Log("MouseClick"), () => Debug.Log("MouseClickFin"));
+        InputHelper.MouseDownStream().Subscribe(x => {
+                Debug.Log("MouseClick " + Camera.allCameras.First().RaycastFromCamera(x));
+            }, () => Debug.Log("MouseClickFin"));
         InputHelper.MouseUpStream().Subscribe(x => Debug.Log("MouseUp"), () => Debug.Log("MouseUpFin"));
         InputHelper.MouseDoubleClickStream().Subscribe(x => Debug.Log("MouseDoubleClick"), () => Debug.Log("MouseDoubleClickFin"));
         InputHelper.MouseDragStream().Subscribe(x => Debug.Log("MouseDrag"), () => Debug.Log("MouseDragFin"));
         InputHelper.MouseMoveStream().Subscribe(x => Debug.Log("MouseMove"), () => Debug.Log("MouseMoveFin"));
         InputHelper.KeyboardStream().Subscribe(x => Debug.Log("Keys down: " + x ), () => Debug.Log("KeyPressFin"));
+        
+        
     }
-
+    
     private IObservable<T> StreamFromAllResources<T>(string name) where T : Object
     {
         return Observable.Amb<T>(StreamFromExternalResources<T>(name));
@@ -47,12 +60,14 @@ public class AppMain : MonoBehaviour {
 
     private IObservable<T> StreamFromExternalResources<T>(string name) where T : Object
     {
-        var url = "file://" + Application.dataPath + "/ExternalResources/resources.unity3dx";
-        Debug.Log("Loading asset from path: " + url);
+        var url = "file://" + Application.dataPath + "/ExternalResources/resources.unity3d";
+        Debug.Log("Loading asset " + name + " from path: " + url);   
         return ObservableWWW
-            .LoadFromCacheOrDownload(url, 1)
+            .LoadFromCacheOrDownload(url, new Hash128())
             .CatchIgnore((WWWErrorException ex) => LogWWWError(ex))
-            .Select(x => x.LoadAsset<T>(name));
+            .Select(x => {var asset = x.LoadAsset<T>(name);
+                x.Unload(false);
+                return asset;});
     }
     
     private void LogWWWError(WWWErrorException ex){
