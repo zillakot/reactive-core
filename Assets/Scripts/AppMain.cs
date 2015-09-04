@@ -5,10 +5,12 @@ using System.Collections.Generic;
 using System.Linq;
 using UniRx;
 using Object = UnityEngine.Object;
+using Unity.Linq;
 
 public class AppMain : MonoBehaviour {
     public static List<string> ResourcePaths = new List<string>(){"Assets/ExternalResources/"};
     private static List<string> _loadedBundles = new List<string>();
+    private static Camera currentCamera;
     public void Awake()
     {
         Debug.Log("Application awake...");
@@ -18,13 +20,14 @@ public class AppMain : MonoBehaviour {
     public void Start()
     {
         Debug.Log("Application start...");
-        TestInput();
         Observable.Concat(
                 InstantiateFromBundle("Main Camera"),
                 InstantiateFromBundle("Plane"),
                 InstantiateFromBundle("Movable Cube"),
                 InstantiateFromBundle("Directional Light"))
-            .Subscribe();
+            .Subscribe(_ => {}, () => {
+                currentCamera = Camera.allCameras.First();
+                TestInput();});
     }
 
     private IObservable<GameObject> InstantiateFromBundle(string assetName)
@@ -35,22 +38,47 @@ public class AppMain : MonoBehaviour {
     private static void TestInput()
     {
         InputHelper.MouseDownStream().Subscribe(x => {
-                var obu = Camera.allCameras.First().RaycastFromCamera(x);
+                var obu = currentCamera.RaycastFromCamera(x).collider;
                 Debug.Log("MouseClick " + obu);
                 if (obu != null) StartDrag(obu);
             }, () => Debug.Log("MouseClickFin"));
-        InputHelper.MouseUpStream().Subscribe(x => Debug.Log("MouseUp"), () => Debug.Log("MouseUpFin"));
+        /*InputHelper.MouseUpStream().Subscribe(x => Debug.Log("MouseUp"), () => Debug.Log("MouseUpFin"));
         InputHelper.MouseDoubleClickStream().Subscribe(x => Debug.Log("MouseDoubleClick"), () => Debug.Log("MouseDoubleClickFin"));
         InputHelper.MouseDragStream().Subscribe(x => Debug.Log("MouseDrag"), () => Debug.Log("MouseDragFin"));
         InputHelper.MouseMoveStream().Subscribe(x => Debug.Log("MouseMove"), () => Debug.Log("MouseMoveFin"));
-        InputHelper.KeyboardStream().Subscribe(x => Debug.Log("Keys down: " + x ), () => Debug.Log("KeyPressFin"));
+        InputHelper.KeyboardStream().Subscribe(x => Debug.Log("Keys down: " + x ), () => Debug.Log("KeyPressFin"));*/
+        MoveGameObjectStream().Subscribe();
+        //GameObjectClickedStream().Subscribe(x => Debug.Log("clicked collider" +  x));
         
         
+    }
+    
+    private static IObservable<Collider> ColliderClickedStream(){
+        return InputHelper.MouseDownStream()
+            .Select(x => currentCamera.RaycastFromCamera(x,"Interactable").collider)
+            .Where(x => x != null);
+    }
+    
+    private static IObservable<GameObject> GameObjectClickedStream(){
+        return ColliderClickedStream()
+            .Select(x => x.gameObject.Parent());
+    }
+    
+    private static IObservable<GameObject> MoveGameObjectStream(){
+        
+        return GameObjectClickedStream().SelectMany(go => {
+            return InputHelper.MouseMoveStream()
+                .TakeUntil(InputHelper.MouseUpStream())
+                .Select(pos => {
+                    var floorPos = currentCamera.RaycastFromCamera(pos, "Floor").point;
+                    go.transform.position = floorPos; 
+                    return go;});
+        });
     }
 
     private static void StartDrag(Collider obu)
     {
-        throw new NotImplementedException();
+        
     }
 
     private IObservable<T> StreamFromAllResources<T>(string name) where T : Object
@@ -70,7 +98,7 @@ public class AppMain : MonoBehaviour {
         var url = "file://" + Application.dataPath + "/ExternalResources/resources.unity3d";
         Debug.Log("Loading asset " + name + " from path: " + url);   
         return ObservableWWW
-            .LoadFromCacheOrDownload(url, 3)
+            .LoadFromCacheOrDownload(url, UnityEngine.Random.Range(0,10))
             .CatchIgnore((WWWErrorException ex) => LogWWWError(ex))
             .Select(x => {var asset = x.LoadAsset<T>(name);
                 x.Unload(false);
