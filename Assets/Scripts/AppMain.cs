@@ -40,7 +40,6 @@ public class AppMain : MonoBehaviour {
         InputHelper.MouseDownStream().Subscribe(x => {
                 var obu = currentCamera.RaycastFromCamera(x).collider;
                 Debug.Log("MouseClick " + obu);
-                if (obu != null) StartDrag(obu);
             }, () => Debug.Log("MouseClickFin"));
         /*InputHelper.MouseUpStream().Subscribe(x => Debug.Log("MouseUp"), () => Debug.Log("MouseUpFin"));
         InputHelper.MouseDoubleClickStream().Subscribe(x => Debug.Log("MouseDoubleClick"), () => Debug.Log("MouseDoubleClickFin"));
@@ -49,13 +48,11 @@ public class AppMain : MonoBehaviour {
         InputHelper.KeyboardStream().Subscribe(x => Debug.Log("Keys down: " + x ), () => Debug.Log("KeyPressFin"));*/
         MoveGameObjectStream().Subscribe();
         //GameObjectClickedStream().Subscribe(x => Debug.Log("clicked collider" +  x));
-        
-        
     }
     
     private static IObservable<Collider> ColliderClickedStream(){
         return InputHelper.MouseDownStream()
-            .Select(x => currentCamera.RaycastFromCamera(x,"Interactable").collider)
+            .Select(x => currentCamera.RaycastFromCamera(x, Layers.Interactable).collider)
             .Where(x => x != null);
     }
     
@@ -70,17 +67,12 @@ public class AppMain : MonoBehaviour {
             return InputHelper.MouseMoveStream()
                 .TakeUntil(InputHelper.MouseUpStream())
                 .Select(pos => {
-                    var floorPos = currentCamera.RaycastFromCamera(pos, "Floor").point;
+                    var floorPos = currentCamera.RaycastFromCamera(pos, Layers.Floor).point;
                     go.transform.position = floorPos; 
                     return go;});
         });
     }
-
-    private static void StartDrag(Collider obu)
-    {
-        
-    }
-
+    
     private IObservable<T> StreamFromAllResources<T>(string name) where T : Object
     {
         return Observable.Amb<T>(StreamFromExternalResources<T>(name));
@@ -98,7 +90,7 @@ public class AppMain : MonoBehaviour {
         var url = "file://" + Application.dataPath + "/ExternalResources/resources.unity3d";
         Debug.Log("Loading asset " + name + " from path: " + url);   
         return ObservableWWW
-            .LoadFromCacheOrDownload(url, UnityEngine.Random.Range(0,10))
+            .LoadFromCacheOrDownload(url, 11)
             .CatchIgnore((WWWErrorException ex) => LogWWWError(ex))
             .Select(x => {var asset = x.LoadAsset<T>(name);
                 x.Unload(false);
