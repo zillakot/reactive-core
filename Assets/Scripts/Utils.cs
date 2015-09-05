@@ -6,7 +6,7 @@ public static class Utils{
         var layer = (layerName == null) ? ~0 : (1 << LayerMask.NameToLayer(layerName));
         var ray = camera.ScreenPointToRay(screenPosition);
         RaycastHit hit;
-        var raycast = Physics.Raycast(ray, out hit, Mathf.Infinity, layer);
+        Physics.Raycast(ray, out hit, Mathf.Infinity, layer);
         return hit;
     }
 }
