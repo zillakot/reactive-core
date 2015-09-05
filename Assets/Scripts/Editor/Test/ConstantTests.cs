@@ -14,8 +14,11 @@ namespace UnityTest
     {
         [Test]
         public void LayersTest(){
-            FieldInfo[] fields = typeof(Layers).GetFields();
-            //fields.ToList();
+            var fields = typeof(Layers).GetFields();
+            foreach (var f in fields){
+                var value = LayerMask.NameToLayer((string)f.GetValue(null));
+                Assert.GreaterOrEqual(value,0);
+            }
             Assert.Pass();
         }
     }
