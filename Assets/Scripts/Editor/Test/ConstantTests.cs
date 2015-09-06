@@ -13,13 +13,21 @@ namespace UnityTest
     public class ConstantTests
     {
         [Test]
-        public void LayersTest(){
+        public void TestLayer(){
+            var layers = UnityEditorInternal.InternalEditorUtility.layers;
             var fields = typeof(Layers).GetFields();
             foreach (var f in fields){
-                var value = LayerMask.NameToLayer((string)f.GetValue(null));
-                Assert.GreaterOrEqual(value,0);
+                Assert.Contains(f.GetValue(null), layers);
             }
-            Assert.Pass();
+        }
+        
+        [Test]
+        public void TestTags(){
+            var tags = UnityEditorInternal.InternalEditorUtility.tags;
+            var fields = typeof(Tags).GetFields();
+            foreach (var f in fields){
+                Assert.Contains(f.GetValue(null), tags);
+            }
         }
     }
 }
