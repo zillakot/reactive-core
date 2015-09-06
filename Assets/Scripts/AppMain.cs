@@ -27,7 +27,16 @@ public class AppMain : MonoBehaviour {
                 InstantiateFromBundle("Directional Light"))
             .Subscribe(_ => {}, () => {
                 currentCamera = Camera.allCameras.First();
-                TestInput();});
+                TestInput();
+                TestStreams();});
+        
+    }
+
+    private void TestStreams()
+    {
+        var resourcesUri = "file://" + Application.dataPath + "/ExternalResources/resources.unity3d";
+        InstantiateFromBundleStream<GameObject>("Movable Cube", resourcesUri, new Hash128())
+        .Subscribe();
     }
 
     private IObservable<GameObject> InstantiateFromBundle(string assetName)
@@ -97,6 +106,19 @@ public class AppMain : MonoBehaviour {
                 return asset;});
     }
     
+    private IObservable<T> InstantiateFromBundleStream<T>(string name, string url, Hash128 hash, IProgress<float> progress = null) where T : Object{
+        return BundleStream(url, hash, progress).Select(x => Instantiate(x.Single(y => y.name == name) as T));
+    }
+    
+    private IObservable<List<Object>> BundleStream(string url, Hash128 hash, IProgress<float> progress = null){
+        return ObservableWWW.LoadFromCacheOrDownload(url, hash, progress)
+            .CatchIgnore((WWWErrorException ex) => LogWWWError(ex))
+            .SelectMany(x => x.LoadAllAssetsAsync()
+                .AsAsyncOperationObservable()
+                .Select(y => y.allAssets.ToList())
+                .Finally(() => x.Unload(false)));
+    }
+    
     private void LogWWWError(WWWErrorException ex){
         Debug.Log(ex.RawErrorMessage);
         if (ex.HasResponse)
@@ -107,11 +129,6 @@ public class AppMain : MonoBehaviour {
         {
             Debug.Log(item.Key + ":" + item.Value);
         }
-    }
-
-    private IObservable<T> LoadFromExternalResources<T>(string prefabName) where T : Object
-    {
-        return Models.Get<AssetBundleModel>().LoadFromBundleStream<T>(prefabName);
     }
 }
 
